@@ -1,0 +1,98 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: pace-flow-polling
+  labels:
+    app: pace-flow-polling
+    tier: web
+spec:
+  template:
+    metadata:
+      labels:
+        app: pace-flow-polling
+        tier: web
+        version: v1
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: In
+                values:
+                - "true"
+      tolerations:
+      - key: gke-preemptible
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: pace-flow-polling
+        image: gcr.io/pace-configs/pace-flow-polling:v0.0.4
+        imagePullPolicy: Always
+        lifecycle:
+          preStop:
+            exec:
+              command: ["kill -s QUIT 1"]
+        resources:
+          requests:
+            memory: "1G"
+            cpu: "1"
+          limits:
+            memory: "2G"
+            cpu: "2"
+        env:
+          - name: CAMUNDA_REST_BASE_URL
+            value: "https://flow.usepace.delivery/engine-rest"
+          - name: DOME_LITE_REST_BASE_URL
+            value: "https://dome-lite-backend.usepace.delivery"  
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: "/etc/secrets/pace-flow-key.json"
+          - name: CAMUNDA_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: pace-flow-creds
+                key: camunda_auth_username
+          - name: CAMUNDA_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: pace-flow-creds
+                key: camunda_auth_password
+          - name: DOME_LITE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: pace-flow-creds
+                key: dome_lite_auth_username
+          - name: DOME_LITE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: pace-flow-creds
+                key: dome_lite_auth_password
+        volumeMounts:
+          - name: pace-flow-key
+            mountPath: "/etc/secrets"
+            readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: pace-flow-key
+          secret:
+            secretName: pace-flow-key
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pace-flow-polling-autoscale
+  labels:
+    app: autoscaling
+    tier: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: pace-flow-polling
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 70
