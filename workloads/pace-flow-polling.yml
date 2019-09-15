@@ -54,8 +54,8 @@ spec:
       restartPolicy: Always
       volumes:
         - name: pace-flow-key
-          secret:
-            secretName: pace-flow-key
+          configMap:
+            name: pace-flow-creds
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
