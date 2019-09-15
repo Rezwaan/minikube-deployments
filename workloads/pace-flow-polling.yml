@@ -44,33 +44,9 @@ spec:
           limits:
             memory: "2G"
             cpu: "2"
-        env:
-          - name: CAMUNDA_REST_BASE_URL
-            value: "https://flow.usepace.delivery/engine-rest"
-          - name: DOME_LITE_REST_BASE_URL
-            value: "https://dome-lite-backend.usepace.delivery"  
-          - name: GOOGLE_APPLICATION_CREDENTIALS
-            value: "/etc/secrets/pace-flow-key.json"
-          - name: CAMUNDA_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: pace-flow-creds
-                key: camunda_auth_username
-          - name: CAMUNDA_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: pace-flow-creds
-                key: camunda_auth_password
-          - name: DOME_LITE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: pace-flow-creds
-                key: dome_lite_auth_username
-          - name: DOME_LITE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: pace-flow-creds
-                key: dome_lite_auth_password
+        envFrom:
+        - configMapRef:
+          name: pace-flow-creds
         volumeMounts:
           - name: pace-flow-key
             mountPath: "/etc/secrets"
